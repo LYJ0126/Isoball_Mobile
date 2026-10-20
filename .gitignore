@@ -1,0 +1,30 @@
+# ---- 构建产物 / 依赖 ----
+*.iml
+.gradle/
+build/
+local.properties
+.idea/
+captures/
+.cxx/
+.externalNativeBuild/
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ---- 项目内部数据 ----
+.workbuddy/
+.wbapp_*.genie
+*.genie
+
+# ---- 体积大 / 第三方 / 个人数据 ----
+# 开发过程的验收截图（37MB）：想放图请手动挑几张到 docs/
+shots/
+# 打包日志
+mobile-isoball/build_log.txt
+# 本机存档码（个人数据）
+savedata.txt
+# 第三方程序 / 原作素材，不入库
+Flash Player 34 独立播放器.exe
+isoball-3.swf

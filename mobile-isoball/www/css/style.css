@@ -1,0 +1,341 @@
+/* Isoball X 重制版 — 暗色金属 HUD 风格（对照原版截图） */
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; background: #0b0d10; }
+body {
+  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+  user-select: none; -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+#app {
+  height: 100%; max-width: 560px; margin: 0 auto;
+  display: flex; flex-direction: column;
+  background: linear-gradient(180deg, #171a1f 0%, #22262d 8%, #1a1d23 92%, #101216 100%);
+  box-shadow: 0 0 40px rgba(0,0,0,.8);
+  position: relative;
+}
+/* 金属斜切装饰线 */
+#app::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 5;
+  background:
+    linear-gradient(135deg, transparent 0 24px, rgba(255,255,255,.06) 24px 26px, transparent 26px),
+    linear-gradient(-45deg, transparent 0 24px, rgba(255,255,255,.06) 24px 26px, transparent 26px);
+}
+
+/* ---------- 顶部 ---------- */
+#topbar {
+  display: flex; align-items: center; gap: 8px;
+  /* 手机前置摄像头/挖孔避让：安全区高度 + 原始 padding（桌面 env=0，布局不变） */
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 8px;
+  background: linear-gradient(180deg, #4a505a 0%, #2b2f36 45%, #212429 55%, #343941 100%);
+  border-bottom: 2px solid #0c0e11;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.15), inset 0 -1px 0 rgba(0,0,0,.5);
+  z-index: 6;
+}
+#lvname {
+  flex: 1; text-align: center;
+  color: #dfe3e8; font-weight: 700; font-size: 15px;
+  text-shadow: 0 -1px 0 #000, 0 1px 1px rgba(255,255,255,.15);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mbtn {
+  min-width: 38px; height: 36px; padding: 0 10px;
+  background: linear-gradient(180deg, #565c66, #33373f 50%, #262a31);
+  color: #d5d9de; border: 1px solid #14161a; border-radius: 5px;
+  font-size: 16px; font-weight: 700; cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 2px 3px rgba(0,0,0,.5);
+}
+.mbtn:active { transform: translateY(1px); box-shadow: inset 0 1px 3px rgba(0,0,0,.6); }
+.mbtn.off { color: #6a7078; }
+.mbtn.wide { font-size: 13px; letter-spacing: 1px; }
+#navbtns { display: flex; gap: 4px; }
+
+/* ---------- 游戏区 ---------- */
+#stage {
+  flex: 1; position: relative; min-height: 0;
+  margin: 8px 10px 0;
+  border: 3px solid #0c0e11; border-radius: 8px;
+  background: #10140a;
+  box-shadow: inset 0 0 24px rgba(0,0,0,.75), 0 0 0 1px #3a3f47, 0 4px 10px rgba(0,0,0,.6);
+  overflow: hidden;
+}
+#cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+.tip {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%) translateY(-8px);
+  max-width: 86%; padding: 7px 14px;
+  background: rgba(12,16,6,.82); border: 1px solid #6d8c1d; border-radius: 6px;
+  color: #d8e88a; font-size: 13px; line-height: 1.5; text-align: center;
+  opacity: 0; transition: all .35s; pointer-events: none; z-index: 4;
+}
+.tip.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* 过关横幅 LEVEL X COMPLETE! */
+.banner {
+  position: absolute; top: 42%; left: 50%;
+  transform: translate(-50%, -50%) scale(.4);
+  padding: 10px 26px;
+  background: linear-gradient(180deg, rgba(30,24,4,.88), rgba(50,40,8,.88));
+  border: 2px solid #d8b23c; border-radius: 10px;
+  color: #ffd83d; font-size: 26px; font-weight: 900; letter-spacing: 2px;
+  text-shadow: 0 2px 0 rgba(0,0,0,.6);
+  box-shadow: 0 4px 18px rgba(0,0,0,.55);
+  opacity: 0; pointer-events: none; z-index: 5;
+  transition: all .3s cubic-bezier(.2,1.6,.4,1);
+  white-space: nowrap;
+}
+.banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+/* 浮钮（旋转/收回） */
+.float {
+  position: absolute; transform: translate(-50%, -100%);
+  display: none; gap: 8px; z-index: 4; margin-top: -6px;
+}
+.float button {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: linear-gradient(180deg, #fbc6d4, #d6849c 60%, #b25a74);
+  border: 2px solid #7d3a50; color: #5d2337;
+  font-size: 20px; font-weight: 900; cursor: pointer;
+  box-shadow: 0 3px 6px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.6);
+}
+.float button:active { transform: scale(.92); }
+
+/* 视角控制（放大/缩小/复原） */
+#viewbtns {
+  position: absolute; right: 8px; top: 10px;
+  display: flex; flex-direction: column; gap: 6px; z-index: 4;
+}
+.vbtn {
+  width: 38px; height: 38px; border-radius: 9px;
+  background: rgba(30,34,40,.72); border: 1px solid #14161a;
+  color: #d5d9de; font-size: 18px; font-weight: 800; cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.15), 0 2px 4px rgba(0,0,0,.5);
+}
+.vbtn:active { transform: scale(.92); background: rgba(60,66,76,.85); }
+
+/* ---------- 操作条 ---------- */
+#actions {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 18px 2px; z-index: 6;
+}
+#eraseBtn, #startBtn {
+  background: none; border: none; cursor: pointer;
+  color: rgba(230,235,240,.85);
+  font-size: 20px; font-weight: 800; letter-spacing: 2px;
+  text-shadow: 0 2px 3px rgba(0,0,0,.8);
+  padding: 8px 14px;
+}
+#eraseBtn.on { color: #ffd83d; text-shadow: 0 0 10px rgba(255,216,61,.8); }
+#startBtn { color: #b8e86a; }
+#startBtn:active { transform: scale(.95); }
+#brand {
+  color: #9aa2ac; font-weight: 900; font-size: 13px; letter-spacing: 3px;
+  text-shadow: 0 -1px 0 #000;
+}
+
+/* ---------- 托盘 ---------- */
+#tray {
+  padding: 6px 10px 12px;
+  display: flex; flex-direction: column; gap: 6px;
+  z-index: 6;
+}
+.trow {
+  display: flex; gap: 6px; justify-content: flex-start;
+  background: linear-gradient(180deg, #1c2026, #262b32);
+  border: 1px solid #0c0e11; border-radius: 6px;
+  padding: 5px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 -2px 5px rgba(0,0,0,.5);
+  min-height: 56px;
+}
+.tcell {
+  position: relative; width: 56px; height: 52px;
+  background: linear-gradient(180deg, #31363e, #22262d);
+  border: 1px solid #14161a; border-radius: 5px;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+  display: flex; align-items: center; justify-content: center;
+  touch-action: none; /* 允许从托盘拖拽出积木 */
+}
+.tcell:active { transform: scale(.94); }
+.tcell.sel {
+  background: linear-gradient(180deg, #8fce32, #5a8f1c);
+  box-shadow: 0 0 12px rgba(143,206,50,.75), inset 0 1px 0 rgba(255,255,255,.35);
+  border-color: #b8e86a;
+}
+.tcell.out { opacity: .38; filter: grayscale(.8); }
+.ticon { width: 44px; height: 44px; pointer-events: none; }
+.tbadge {
+  position: absolute; top: 2px; left: 4px;
+  color: #fff; font-size: 12px; font-weight: 800;
+  text-shadow: 0 1px 2px #000, 0 0 4px rgba(0,0,0,.8);
+  pointer-events: none;
+}
+
+/* ---------- 覆盖层 ---------- */
+.overlay {
+  position: fixed; inset: 0; z-index: 20;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(5,7,10,.72); backdrop-filter: blur(3px);
+}
+.panel {
+  background: linear-gradient(180deg, #2b2f36, #1a1d23);
+  border: 2px solid #0c0e11; border-radius: 12px;
+  padding: 26px 30px; text-align: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.12);
+  max-width: 86vw;
+}
+#clearTitle {
+  font-size: 42px; font-weight: 900; letter-spacing: 3px;
+  color: #b8e86a; text-shadow: 0 0 24px rgba(143,206,50,.6), 0 3px 0 #33500c;
+  margin-bottom: 6px;
+}
+#clearSub { color: #cfd4da; font-size: 14px; margin-bottom: 18px; min-height: 18px; }
+.btnrow { display: flex; gap: 12px; justify-content: center; }
+.pbtn {
+  padding: 10px 22px; border-radius: 7px; cursor: pointer;
+  background: linear-gradient(180deg, #565c66, #33373f 55%, #262a31);
+  border: 1px solid #14161a; color: #dfe3e8;
+  font-size: 15px; font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 3px 6px rgba(0,0,0,.5);
+}
+.pbtn.main {
+  background: linear-gradient(180deg, #a4d844, #6a9e24 60%, #4c7517);
+  color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.5);
+  border-color: #33500c;
+}
+.pbtn:active { transform: translateY(1px); }
+.mtitle { color: #dfe3e8; font-size: 20px; font-weight: 800; margin-bottom: 16px; letter-spacing: 2px; }
+#menuGrid {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px;
+  justify-content: center;
+  margin-bottom: 14px;
+  /* 43 关放不下一屏：面板限高 + 网格自己竖向滑动（手机必用） */
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain; touch-action: pan-y;
+  padding: 10px 4px 8px;   /* 上下留白：给已通关的 ✓ 角标（top:-6）留出位置 */
+  flex: 1 1 auto; min-height: 0;
+}
+/* 选关 / 大厅面板：小屏限高并允许滚动，避免按钮被顶出屏幕 */
+#menuOv .panel, #lobbyOv .panel {
+  display: flex; flex-direction: column;
+  max-height: 90vh; max-height: 90dvh;
+  padding: 20px 18px 16px;
+  /* 固定一个偏窄的宽度：网格用 1fr 列时面板不会被内容压扁 */
+  width: min(92vw, 340px);
+}
+#menuOv .panel .btnrow, #lobbyOv .panel .btnrow { flex: 0 0 auto; }
+#menuOv .mtitle, #lobbyOv .lobby-title { flex: 0 0 auto; }
+.mcell {
+  width: 100%; height: auto; aspect-ratio: 1 / 1; border-radius: 8px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+  background: linear-gradient(180deg, #8fce32, #5a8f1c);
+  border: 1px solid #33500c; color: #fff; font-size: 20px; font-weight: 900;
+  text-shadow: 0 1px 2px rgba(0,0,0,.5);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
+}
+.mcell.lock {
+  background: linear-gradient(180deg, #3a3f47, #262a31);
+  border-color: #14161a; color: #6a7078; cursor: not-allowed;
+}
+/* 未解锁：斜杠锁标（点了没反应） */
+.mcell { position: relative; }
+.mcell.lock::after {
+  content: ''; position: absolute; left: 16%; right: 16%; top: 50%;
+  height: 3px; border-radius: 2px; background: #8a919b;
+  transform: rotate(-45deg); opacity: .75;
+}
+/* 已通关：✓ 角标 */
+.mcell.done { position: relative; }
+.mcell .chk {
+  position: absolute; top: -5px; right: -4px;
+  width: 18px; height: 18px; line-height: 18px;
+  background: #fff; color: #4c8a10; border-radius: 50%;
+  font-size: 14px; font-weight: 900; box-shadow: 0 1px 3px rgba(0,0,0,.5);
+}
+/* 下一可玩关：呼吸微光 */
+.mcell.cur { animation: cellGlow 1.6s ease-in-out infinite; }
+@keyframes cellGlow {
+  0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 0 6px rgba(184,232,106,.4); }
+  50% { box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 0 16px rgba(184,232,106,.95); }
+}
+
+/* 确认放置勾钮（绿色） */
+#float #okBtn {
+  background: linear-gradient(180deg, #c2ec7a, #8fce32 60%, #5a8f1c);
+  border-color: #33500c; color: #234208;
+}
+
+/* ---------- 大厅（三存档） ---------- */
+.lobby-panel { min-width: min(420px, 86vw); }
+.lobby-title { font-size: 26px; letter-spacing: 6px; color: #b8e86a; }
+#saveCards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+.scard {
+  position: relative; display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-radius: 9px; cursor: pointer;
+  background: linear-gradient(180deg, #31363e, #22262d);
+  border: 2px solid #14161a;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+  text-align: left;
+}
+.scard.cur {
+  border-color: #b8e86a;
+  box-shadow: 0 0 14px rgba(143,206,50,.45), inset 0 1px 0 rgba(255,255,255,.1);
+}
+.scard .sname { color: #e8ecf0; font-size: 17px; font-weight: 800; letter-spacing: 2px; }
+.scard .scount { flex: 1; color: #b8e86a; font-size: 14px; font-weight: 700; }
+.scard .sdel {
+  padding: 6px 12px; border-radius: 6px; cursor: pointer;
+  background: linear-gradient(180deg, #7a4048, #552a30);
+  border: 1px solid #3a1c20; color: #f2c9cd;
+  font-size: 13px; font-weight: 700;
+}
+.scard .sdel:active { transform: scale(.94); }
+.lobby-btns { flex-direction: column; gap: 10px; }
+.lobby-btns .pbtn { width: 100%; }
+.lobby-hint { margin-top: 12px; color: #8a919b; font-size: 12px; }
+.confirm-text { font-size: 17px; letter-spacing: 1px; color: #e8d8da; margin-bottom: 20px; }
+.pbtn.danger {
+  background: linear-gradient(180deg, #c05a62, #95333c 60%, #6e2028);
+  border-color: #4a141a; color: #fff;
+}
+
+/* 小屏适配 */
+@media (max-height: 640px) {
+  .tcell { width: 48px; height: 46px; }
+  .ticon { width: 38px; height: 38px; }
+  #eraseBtn, #startBtn { font-size: 17px; }
+}
+
+/* ---------- 提示（通关攻略） ---------- */
+/* 帮助按钮：放在游戏区左上角的黑色空区（与右侧视角按钮对称） */
+#helpBtn {
+  position: absolute; left: 8px; top: 10px; z-index: 4;
+  width: 38px; height: 38px; padding: 0; border-radius: 50%;
+  background: rgba(30,34,40,.72); border: 1px solid #14161a;
+  color: #ffd83d; font-size: 21px; font-weight: 900; line-height: 1;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.15), 0 2px 4px rgba(0,0,0,.5);
+}
+#helpBtn:active { transform: translateY(1px); }
+#helpBtn:disabled {
+  color: #5a6068; opacity: .45; cursor: default;
+  box-shadow: none; transform: none; border-color: #101215;
+}
+/* 顶部金属按钮禁用态（攻略界面里"清屏"失效变灰） */
+.mbtn:disabled {
+  color: #5a6068; opacity: .45; cursor: default;
+  box-shadow: none; border-color: #101215;
+}
+.mbtn:disabled:active { transform: none; box-shadow: none; }
+
+/* 攻略模式下左下角按钮换成"退出并继续本关"，字号收小以免挤 */
+#eraseBtn.helpmode {
+  font-size: 14px; letter-spacing: 0; color: #ffd83d;
+  text-shadow: 0 0 10px rgba(255,216,61,.55);
+}
+
+/* 选关网格可滑动时的提示行（43 关在小屏放不下一屏） */
+.menu-hint {
+  flex: 0 0 auto; height: 16px; margin: -6px 0 6px;
+  color: #8a919b; font-size: 11px; letter-spacing: 1px;
+}

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>小球进洞手机版</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+<div id="errbox" style="position:fixed;top:0;left:0;right:0;z-index:999;background:#900;color:#fff;font:12px monospace;padding:4px;display:none;white-space:pre-wrap;max-height:40%;overflow:auto"></div>
+<script>
+// 错误默认静默：只记入 localStorage（最近 8 条），玩家界面上不显示任何报错。
+// 调试时用 ?errbox=1 打开红条查看（手机上复现问题用）。
+window.addEventListener('error', function (e) {
+  try {
+    var msg = (e.filename || '') + ':' + (e.lineno || '') + ' ' + (e.message || 'Script error');
+    var logs = []; try { logs = JSON.parse(localStorage.getItem('isoballx_errs') || '[]'); } catch (_) { logs = []; }
+    logs.push(msg); while (logs.length > 8) logs.shift();
+    localStorage.setItem('isoballx_errs', JSON.stringify(logs));
+  } catch (_) { void _; }
+  if (location.search.indexOf('errbox') >= 0) {
+    var b = document.getElementById('errbox');
+    b.style.display = 'block';
+    b.textContent += msg + '\n';
+  }
+});
+window.addEventListener('unhandledrejection', function (e) {
+  try {
+    var msg = 'promise: ' + (e.reason && (e.reason.message || e.reason) || 'rejected');
+    var logs = []; try { logs = JSON.parse(localStorage.getItem('isoballx_errs') || '[]'); } catch (_) { logs = []; }
+    logs.push(msg); while (logs.length > 8) logs.shift();
+    localStorage.setItem('isoballx_errs', JSON.stringify(logs));
+  } catch (_) { void _; }
+});
+// 隐藏调试入口：?errs=1 查看 localStorage 里的历史报错（玩家界面任何情况下不显示报错）
+if (location.search.indexOf('errs=1') >= 0) {
+  setTimeout(function () {
+    var logs = [];
+    try { logs = JSON.parse(localStorage.getItem('isoballx_errs') || '[]'); } catch (_) { logs = []; }
+    var b = document.getElementById('errbox');
+    b.style.display = 'block';
+    b.textContent = '--- 历史记错（最近 ' + logs.length + ' 条）---\n' + (logs.join('\n') || '(无记录)');
+  }, 400);
+}
+</script>
+
+  <!-- 顶部金属条 -->
+  <div id="topbar">
+    <button id="muteBtn" class="mbtn" title="音效">♪</button>
+    <button id="menuBtn" class="mbtn" title="返回大厅">⌂</button>
+    <div id="lvname">第 1 关</div>
+    <div id="navbtns">
+      <button id="prevBtn" class="mbtn">‹</button>
+      <button id="nextBtn" class="mbtn">›</button>
+    </div>
+    <button id="clearBtn" class="mbtn wide">清屏</button>
+  </div>
+
+  <!-- 游戏区 -->
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="tip" class="tip"></div>
+    <div id="banner" class="banner"></div>
+    <button id="helpBtn" title="提示：显示这一关的通关摆放方法">?</button>
+    <div id="viewbtns">
+      <button id="vrotBtn" class="vbtn" title="切换视角（默认/右墙/左墙/俯视）">⟲</button>
+      <button id="zinBtn" class="vbtn" title="放大">＋</button>
+      <button id="zoutBtn" class="vbtn" title="缩小">－</button>
+      <button id="zresetBtn" class="vbtn" title="复原缩放">◎</button>
+    </div>
+    <div id="float" class="float">
+      <button id="okBtn" title="确认放置">✓</button>
+      <button id="rotBtn" title="旋转">⟳</button>
+      <button id="delBtn" title="收回">✕</button>
+    </div>
+  </div>
+
+  <!-- 操作条 -->
+  <div id="actions">
+    <button id="eraseBtn">去除</button>
+    <div id="brand">小球进洞</div>
+    <button id="startBtn">开始</button>
+  </div>
+
+  <!-- 积木托盘（两行） -->
+  <div id="tray">
+    <div class="trow" id="tray1"></div>
+    <div class="trow" id="tray2"></div>
+  </div>
+
+  <!-- CLEAR 覆盖层 -->
+  <div id="clearOv" class="overlay">
+    <div class="panel">
+      <div id="clearTitle">通关！</div>
+      <div id="clearSub"></div>
+      <div class="btnrow">
+        <button id="clearMenu" class="pbtn">选关</button>
+        <button id="clearNext" class="pbtn main">下一关 ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 选关覆盖层 -->
+  <div id="menuOv" class="overlay">
+    <div class="panel">
+      <div class="mtitle">选择关卡</div>
+      <div id="menuGrid"></div>
+      <div id="menuHint" class="menu-hint"></div>
+      <div class="btnrow"><button id="menuClose" class="pbtn">返回大厅</button></div>
+    </div>
+  </div>
+
+  <!-- 大厅（三存档） -->
+  <div id="lobbyOv" class="overlay">
+    <div class="panel lobby-panel">
+      <div class="mtitle lobby-title">小 球 进 洞</div>
+      <div id="saveCards"></div>
+      <div class="btnrow lobby-btns">
+        <button id="lobbyContinue" class="pbtn main">▶ 继续上一次关卡</button>
+        <button id="lobbyLevels" class="pbtn">☰ 关卡选择</button>
+        <button id="lobbyExit" class="pbtn" style="display:none">退出游戏</button>
+      </div>
+      <div class="btnrow lobby-btns">
+        <button id="lobbyExport" class="pbtn" style="font-size:13px;flex:0 0 auto;padding:8px 14px">⇪ 导出存档</button>
+        <button id="lobbyImport" class="pbtn" style="font-size:13px;flex:0 0 auto;padding:8px 14px">⇩ 导入存档</button>
+      </div>
+      <div id="lobbyHint" class="lobby-hint"></div>
+    </div>
+  </div>
+
+  <!-- 删除存档确认 -->
+  <div id="confirmOv" class="overlay">
+    <div class="panel">
+      <div id="confirmText" class="mtitle confirm-text">是否删除该存档？</div>
+      <div class="btnrow">
+        <button id="confirmNo" class="pbtn">取消</button>
+        <button id="confirmYes" class="pbtn danger">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 提示确认 -->
+  <div id="helpOv" class="overlay">
+    <div class="panel">
+      <div class="mtitle">要提示吗？</div>
+      <div id="helpText" class="confirm-text">看了提示就等于看到答案，通关的乐趣会大打折扣。<br>确定要看这一关的摆放方法吗？</div>
+      <div class="btnrow">
+        <button id="helpNo" class="pbtn">取消</button>
+        <button id="helpYes" class="pbtn main">确认</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script src="js/sim.js?v=20261019z1"></script>
+<script src="js/levels.js?v=20261019z1"></script>
+<script src="js/render.js?v=20261019z1"></script>
+<script src="js/audio.js?v=20261019z1"></script>
+<script src="js/game.js?v=20261019z1"></script>
+</body>
+</html>

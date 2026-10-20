@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 蓝色圆底 -->
+    <path
+        android:fillColor="#4AA3D8"
+        android:pathData="M54,54 m-46,0 a46,46 0 1,1 92,0 a46,46 0 1,1 -92,0" />
+    <!-- 等距平台（菱形顶面 + 两个侧面） -->
+    <path
+        android:fillColor="#F7EED6"
+        android:pathData="M54,38 L80,52 L54,66 L28,52 Z" />
+    <path
+        android:fillColor="#D9C9A4"
+        android:pathData="M28,52 L54,66 L54,76 L28,62 Z" />
+    <path
+        android:fillColor="#C2AE85"
+        android:pathData="M80,52 L54,66 L54,76 L80,62 Z" />
+    <!-- 洞 -->
+    <path
+        android:fillColor="#241708"
+        android:pathData="M62,56 m-9,0 a9,5.2 0 1,1 18,0 a9,5.2 0 1,1 -18,0" />
+    <!-- 小球 -->
+    <path
+        android:fillColor="#E84F3D"
+        android:pathData="M40,32 m-10,0 a10,10 0 1,1 20,0 a10,10 0 1,1 -20,0" />
+    <path
+        android:fillColor="#FFE1DA"
+        android:pathData="M36.5,28.5 m-3.2,0 a3.2,3.2 0 1,1 6.4,0 a3.2,3.2 0 1,1 -6.4,0" />
+</vector>
