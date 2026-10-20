@@ -2,13 +2,27 @@
 
 > *Isoball* 玩法的中文重制版 —— 网页版 + 安卓 WebView 壳，共 **43 关**。
 
-把托盘里的积木摆到盘面上，让小球从墙洞滚出来，一路滚进洞里。平坦的地面会耗掉动能，所以路要铺得刚刚好。
+把底边栏里的积木摆到盘面上，让小球从墙洞滚出来，一路滚进洞里。小球滚动过程中会因摩擦损失动能，所以路线需规划好，保证球最终能滚进洞里。
+
+## 游戏截图
+
+<p align="center">
+  <img src="docs/screenshots/board.png" width="460" alt="第 43 关：电梯塔、荧光光桥、传送门">
+</p>
+<p align="center"><sub>第 43 关</sub></p>
+
+<p align="center">
+  <img src="docs/screenshots/game.png" width="200" alt="手机版游玩界面">
+  <img src="docs/screenshots/levels.png" width="200" alt="43 关选关">
+  <img src="docs/screenshots/hint.png" width="200" alt="关卡提示（攻略）">
+</p>
+<p align="center"><sub>手机版：游玩界面 / 关卡选择界面 / 关卡提示（点左上角 <code>?</code> 展示通关摆法）</sub></p>
 
 ## 特性
 
 - **43 关**，逐步引入新机制：斜坡 → 箭头 → 桥 → 电梯 → 传送带 → 按钮/立柱 → 荧光块（光桥）
 - **等距 3D 渲染**，四种视角（主视角 / 右墙 / 左墙 / 俯视），支持双指缩放、单指平移、双击复原
-- **手机优先**：锁竖屏、触屏拖拽放积木、浮钮旋转/收回、44px 圆形操作钮
+- **手机优先**：锁竖屏、触屏拖拽放积木；积木放下后弹出 44px 圆形浮钮（确认 / 旋转 / 收回），视角与提示按钮 38px
 - **关卡提示**：点左上角 `?` 会按每关记录的 `sol` 摆出通关走法，可「退出并继续本关」回到自己的摆法
 - **三存档位**，进度存在浏览器 localStorage，并做了一份双写备份
 
@@ -44,21 +58,24 @@ Isoball-Mobile.apk        已构建好的安装包，直接装即可
 
 ## 构建 APK
 
-一套源码、三份副本，顺序不能乱 —— **改完必须先同步，再打包**，否则会打出旧代码的包：
+一套源码、三份副本，**顺序不能乱** —— 改完必须先同步再打包，否则会打出旧代码的包：
 
 ```bash
-# 1. 同步源码（isoball-x/www 是主稿）
+# 1. 同步源码（isoball-x/www 是唯一主稿，另外两份都从它复制）
 cp -a isoball-x/www/. mobile-isoball/www/
 cp -a isoball-x/www/. mobile-isoball/android/app/src/main/assets/www/
 
 # 2. 打包（需要 Gradle 8.13 + Android SDK 34 + JDK 17）
 gradle -p mobile-isoball/android assembleDebug
 
-# 3. 复制到根目录
+# 3. 产物复制到根目录
 cp mobile-isoball/android/app/build/outputs/apk/debug/app-debug.apk Isoball-Mobile.apk
 ```
 
-> 仓库里没有 `gradlew`，用的是本机安装的 Gradle。想让它自包含，可以在 `mobile-isoball/android` 下执行一次 `gradle wrapper` 并把生成的 `gradlew` / `gradle/wrapper/` 一起入库。
+产物位置：`mobile-isoball/android/app/build/outputs/apk/debug/app-debug.apk`。
+
+> 仓库里没有 `gradlew`，用的是本机安装的 Gradle。想让它自包含（换个环境也能直接打包），
+> 在 `mobile-isoball/android` 下执行一次 `gradle wrapper`，再把生成的 `gradlew` 和 `gradle/wrapper/` 一起提交即可。
 
 ## 关卡数据格式（`js/levels.js`）
 
@@ -95,9 +112,16 @@ node tools/check-levels.js    # 43 关，问题 0 关
 node tools/audit-ball-center.js
 ```
 
-游戏内调试参数（浏览器地址栏加）：`?showsol=1&level=N` 摆好解法、`?autotest=1&level=N` 自动通关、
-`?helptest=1&level=N` 提示流程自测（30 条断言）、`?errs=1` 查看历史报错、`?debugstate=1` 暴露内部状态。
+## 关于开发方式
+
+这个项目是 **Vibe Coding** 的产物：玩法规则、关卡设计和验收标准由人定义，代码实现与验证主要和 AI 协作完成。
+
+- **人**：定规则（桥怎么塌、立柱怎么降、传送门怎么开洞）、设计 43 关的布局与积木配置、逐关试玩并反馈
+- **AI**：实现物理引擎 / 等距渲染 / 交互、推演并校验每关的 `sol`、写回归测试、打包 APK 并在安卓模拟器上真机验证
+
+所以 `tools/` 那套脚本不是附属品，而是这种协作方式能收敛的关键：每次改动都要 `verify`（43 关是否都能通关）
++ `test-rules`（138 条规则用例）全绿才算通过，改关卡就得同步重推 `sol`，否则提示功能会给玩家一盘走不通的棋。
 
 ## 说明
 
-本项目是对 Flash 游戏 *Isoball* 玩法的中文重制，仅用于学习与自娱，原作版权归原作者所有。
+本项目是对 Flash 游戏 *Isoball* 玩法的中文重制，仅用于学习参考，原作版权归原作者所有。
